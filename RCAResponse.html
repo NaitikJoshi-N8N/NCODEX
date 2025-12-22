@@ -1,0 +1,182 @@
+<script>
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * RCA RESPONSE TEMPLATES
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Auto-fills rebuttal response based on selected RCA.
+ * Original logic preserved exactly.
+ */
+
+function fetchResponse() {
+  var rca = document.getElementById("rca").value;
+  var res = document.getElementById("rebuttal-response");
+  const cursorPosition = res.selectionStart;
+  var checkbox = document.getElementById("getRes?").checked;
+  
+  const textBeforeCursor = res.value.substring(0, cursorPosition);
+  const textAfterCursor = res.value.substring(cursorPosition);
+  
+  if (checkbox) {
+    switch (rca) {
+
+      case "Customer - Cancel policy dispute/Non Refundable":
+        res.value = textBeforeCursor + "Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. At the time the booking was made, the reservation was non-refundable. Cardholder's chargeback is an erroneous attempt to circumvent the cancellation policy and breach the contract the customer entered when agreeing to the Terms and Conditions (T&C) before his card was charged. Cardholder owes Priceline Partner Solutions for the reservation. A reversal is due. Please see included documents supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+
+      case "Risk - Fraudulent Transaction":
+        res.value = textBeforeCursor + "The following transaction is not fraudulent as stated. The attached documents indicate the cardholder participated in the transaction. Also, we are a Card Not Present (CNP) environment. All of our sales purchase are made by the customer either directly through our secure online platform or via our official call center, where all transactions are handled through verified procedures. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. The attached documents indicate the cardholder participated in the transaction; note the AVS and CVV attached. The payment for this reservation processed in the United States and appeared on statement as 'HTL*_______'. Based on this, we confirm that the transaction was initiated and authorized by the cardholder and request that the chargeback be reversed. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. The attached documents indicate the cardholder participated in the transaction. The cardholder has made no good faith effort in resolving any issues with this charge with Priceline Partner Solutions prior to filing the dispute.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - Cancel policy dispute":
+        res.value = textBeforeCursor + "Cardholder claiming credit is owed on a reservation. Customer tried contacting Priceline Partner Solutions for cancellation when the reservation was inside penalty or canceled the reservation inside of cancellation policy. See attached receipt/confirmation sent to the customer at the time of booking detailing the cancellation policy. Per cancellation policy and Priceline Partner Solutions Terms and Conditions, which the customer agreed to at the time of booking, no refund is due. If you do not cancel before the cancellation policy period applicable to the reservation, the customer will be subject to a charge equal to applicable nightly rates, tax recovery charges, and service fees. There are no refunds for no-shows or early checkouts. The hotel/ supplier has billed Priceline Partner Solutions, and we have paid the hotel/supplier. The customer owes Priceline Partner Solutions for the reservation.\n\n" + textAfterCursor;
+        break;
+
+      case "No Reservation (No Wex)":
+        res.value = textBeforeCursor + "Reservation was available at the time of check-in. No cancellation was received via the Priceline Partner Solutions customer service phone line or via the Travel Agent site, as required per the cancellation policy of the reservation. All policies agreed to and sent to guests after the completion of booking process. Guest failed to process cancellation based on agreed-upon policy. See attached confirmation of booking. The supplier billed Priceline for the stay, and Priceline billed the guest. Reversal is required.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - Taxes and Fees":
+        res.value = textBeforeCursor + "The customer agreed to and confirmed acceptance of the full transaction price before providing their card information to book the room. The customer is disputing the amount of taxes and service fees. Per Terms and Conditions (T&C), the tax recovery charge is a recovery of the estimated taxes that we pay to the hotel for our customers' reservations. We also collect a service fee for facilitating reservations. These facts are listed in the T&C which the customer agreed to before their card was charged. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+
+      case "Manual Response":
+        res.value = "";
+        break;
+
+      case "Customer - Cancel policy dispute (No Contact / Confirmed)":
+        res.value = textBeforeCursor + "NO cancellation was received via Priceline customer service via any means - call or email, as required per the attached cancellation policy (T&C Sec 36). The reservation is still active on our records. All policies are agreed to and sent to the guest during checkout. Guest failed to process a cancellation based on agreed-upon policy. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. See attached confirmation of booking supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+
+      case "Chargeback Accepted":
+        res.value = "Chargeback has been accepted.";
+        break;
+
+      case "No Reservation (with WEX)":
+        res.value = textBeforeCursor + "Reservation was available at the hotel for check-in. No cancellation was received via the Priceline Partner Solutions customer service phone line or via the Travel Agent site, as required per the cancellation policy of the reservation. There should be no charges from the hotel directly for this reservation. Please see the attached document showing the hotel has billed Priceline Partner Solutions for the reservation, and we have paid the hotel / supplier. The customer agreed to the terms of the booking before their card was charged. Our terms state that Priceline Partner Solutions is not responsible for the services provided at the hotel; we are merely the facilitator of the hotel booking process. The Cardholder owes Priceline Partner Solutions for this reservation. Please see attached receipt/confirmation sent at the time of booking.\n\n" + textAfterCursor;
+        break;
+
+      case "Cancellation/Tax & Recovery (attempt to cancel)":
+        res.value = textBeforeCursor + "The customer reviewed and accepted both the cancellation policy and the full transaction amount prior to entering their payment information and completing the booking. They are now disputing the charge, claiming the cancellation was due to dissatisfaction with taxes and service fees. However, as clearly outlined in the Terms and Conditions (T&C) accepted at the time of purchase:\n\nTax Recovery Charge: This charge represents the estimated taxes that we collect and remit directly to the hotel or affiliated supplier on the customer's behalf. It ensures compliance with local tax requirements related to the reservation.\n\nService Fee: This is a nonrefundable fee that covers the administrative and operational costs of facilitating the reservation with our affiliate or supplier. It is clearly disclosed during the booking process.\n\nThese charges, along with the cancellation policy, were fully presented and accepted prior to the cardholder's payment authorization. As such, the transaction was processed in accordance with the agreed-upon terms.\n\n" + textAfterCursor;
+        break;
+
+      case "Duplicate bill w/ GAR ARN":
+        res.value = textBeforeCursor + "Please see the included purchase details showing that the Cardholder purchased the same item through different transactions. Cardholder booked these reservations and agreed to balance, cancellation policy, terms and condition. The Cardholder is provided with the confirmed booking details before completing the purchase. Please see attached receipt/confirmation sent at the time of booking.\n\n" + textAfterCursor;
+        break;
+
+      case "Hotel - Unsatisfactory":
+        res.value = textBeforeCursor + "The cardholder is claiming to be dissatisfied with the services provided at the hotel. This reservation is non-refundable once services are rendered. The customer agreed to the terms of the booking before their card was charged. Per the additional terms under Travel Agency Agreement, Section 17 states that because of the nature of Travel Agent's Services, we are not in control of the quality of rooms provided by any particular hotel at any time. Travel Agent has no control over, and makes no representations regarding, the quality, safety or legality of the products and services offered, food provided, accommodations provided, and/or the truth or accuracy of the listings or the ability of the vendors to offer services, nor do we make any guarantee that the lodging establishment is not undergoing any renovation. The terms state that Priceline Partner Solutions is not responsible for the services provided at the hotel; Priceline Partner Solutions is merely the facilitator of the hotel booking process. Per terms and conditions as well as the cancellation policy emailed to the customer at the time of booking, the customer is due no refund. The hotel/ supplier has billed Priceline Partner Solutions, and we have paid the hotel/supplier.\n\n" + textAfterCursor;
+        break;
+
+      case "No Reservation (Cancelled)":
+        res.value = textBeforeCursor + "The reservation was confirmed and scheduled for [check-in date]. The customer voluntarily cancelled the reservation on [cancellation date], prior to the check-in date. As per our stated cancellation policy, [we can add cancellation policy — e.g., \"reservations cancelled within X days of check-in are non-refundable\"]. Since the customer chose to cancel the reservation, the service which was supposed to be available, couldn't /wouldn't be rendered and hence this chargeback is not valid under the reason code \"services not rendered\" Attached are the reservation confirmation, cancellation request from the customer, and our cancellation policy as presented at the time of booking. We respectfully request that this chargeback be reversed.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - Cancel Penalty Dispute/Early Checkout":
+        res.value = textBeforeCursor + "Cardholder is disputing unused nights. The cardholder checked out early, but this does not change the terms they agreed to at the time of booking. The reservation was non-refundable, and our policy clearly states that no refunds are given for unused nights. The full charge remains valid because the room was held for the entire duration of the original reservation, making it unavailable to other guests, and the rate was based on the full length of stay selected at the time of booking. Per terms and conditions as well as the cancellation policy emailed to the customer at the time of booking, Cardholder is not due a refund.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - No Receipt":
+        res.value = textBeforeCursor + "Customer made a hotel reservation with Priceline Partner Solutions and customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents of the reservation.\n\n" + textAfterCursor;
+        break;
+
+      case "Hotel - Hotel Billed Direct (Wex not charged/Direct Bill)":
+        res.value = textBeforeCursor + "Per the affidavit, the customer claims to have been direct billed by the hotel in error. Our establishment did not make this charge. This charge should be disputed with the establishment that made them. The customer agreed to the terms of the booking before their card was charged. Our terms state that Priceline Partner Solutions.com is not responsible for the services provided at the hotel. Priceline Partner Solutions.com is only the facilitator of the hotel booking process. The customer owes Priceline Partner Solutions for this reservation. Please see attached receipt/confirmation sent at the time of booking.\n\n" + textAfterCursor;
+        break;
+
+      case "Cancellation/Tax & Recovery (No attempt to cancel)":
+        res.value = textBeforeCursor + "The customer completed the booking after reviewing and accepting both the cancellation policy and the full transaction amount prior to entering their payment information. They are now disputing the charge, citing dissatisfaction with taxes and service fees, despite having neither canceled the reservation nor contacted us to request a cancellation. There is no record of any cancellation initiated by the customer.\n\nThe charges in question were fully disclosed at the time of booking and accepted under the Terms and Conditions (T&C): \n\nTax Recovery Charge: This charge represents the estimated taxes that we collect and remit directly to the hotel or affiliated supplier on the customer's behalf. It ensures compliance with local tax obligations related to the reservation. \n\nService Fee: This is a non-refundable fee that covers the administrative and operational costs of securing and managing the reservation with our affiliate or supplier. It was clearly itemized during the checkout process. \n\nThese fees, along with the total transaction amount, were acknowledged and approved by the customer prior to confirming the reservation. As there is no record of a cancellation, and the reservation was held as booked, the charge remains valid and consistent with the agreed-upon terms.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - Charge not recognized":
+        res.value = textBeforeCursor + "The following transaction is not fraudulent as stated. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. The attached documents indicate the cardholder participated in the transaction; note the AVS and CVV attached. The payment for this reservation processed in the United States and appeared on statement as 'cci*Hotel Res'.\n\n" + textAfterCursor;
+        break;
+
+      case "Hotel - Hotel revealed rate":
+        res.value = textBeforeCursor + "The hotel has revealed Priceline Partner Solutions's net rates to the customer in error. The hotel's receipt provided to the customer in error shows wholesale rates between Priceline Partner Solutions and the hotel. The customer agreed to the retail Priceline Partner Solutions rate during the booking process with us and agreed to and confirmed acceptance of the full transaction price including the Tax Recovery Charges & Service Fees before providing their card information to book the room. Per Terms and Conditions (T&C), the tax recovery charge is a recovery of the estimated taxes that we pay to the hotel for our customers' reservations. We also collect a service fee for facilitating reservations. These facts are listed in the T&C which the customer agreed to before their card was charged. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit.\n" + textAfterCursor;
+        break;
+
+      case "Hotel - Hotel Billed Direct":
+        res.value = textBeforeCursor + "Per the affidavit, the customer claims to have been direct billed by the hotel in error. Our establishment did not make this charge. This charge should be disputed with the establishment that made them. The customer agreed to the terms of the booking before their card was charged. Our terms state that Priceline Partner Solutions is not responsible for the services provided at the hotel. Priceline Partner Solutions is only the facilitator of the hotel booking process. Priceline Partner Solutions has paid for the reservation in advance and it was available at the time of check in. The customer owes Priceline Partner Solutions for this reservation. Please see attached receipt/confirmation sent at the time of booking.\n" + textAfterCursor;
+        break;
+
+      case "Duplicate bill w/ NON GAR ARN":
+        res.value = textBeforeCursor + "Please be advised the ARN# listed on the affidavit does not belong to Priceline Partner Solutions. The customer claims to have been direct billed by the hotel in error. Our establishment did not make this charge. These charges should be disputed with the establishment that made them. The customer agreed to Priceline Partner Solutions's terms of the booking before we charged their card. Our terms state that Priceline Partner Solutions is not responsible for the services provided at the hotel. Priceline Partner Solutions is merely the facilitator of the hotel booking process. Please see attached receipt/confirmation sent at the time of booking. There should be no charges from the hotel directly for this reservation as the hotel has billed Priceline Partner Solutions for the reservation, and we have paid the hotel.\n\n" + textAfterCursor;
+        break;
+
+      case "Resolved":
+        res.value = "Auto-resolved / Reversal Received";
+        break;
+
+      case "Reason code 53 without affidavit":
+        res.value = textBeforeCursor + "The customer booked the reservation having first agreed to the balance, cancellation policy, and terms and conditions (T&C). Priceline Partner Solutions has no record of Cardholder making a good faith effort to contact us regarding any cancellation, refund, or service issues. There were no affidavits attached to this dispute informing the reason of the dispute, to allow Priceline Partner Solutions adequate information to address the customer's concerns. Based on reason code 53-NOT AS DESCRIBED OR DEFECTIVE, no cancellation was received via the Priceline Partner Solutions customer service phone line or via the Travel Agent site within the cancellation period, as required per the attached cancellation policy and T&C. All policies are agreed to and sent to guests during checkout via email. Any COVID 19 cancellations inside of penalty must be supported with positive test results. The customer agreed to the terms of the booking before their card was charged. However, because of the nature of Travel Agent's Services, we are not in control of the quality of rooms provided by any particular hotel at any time. Travel Agent does not guarantee the accuracy of any information on the Site, nor do we make any guarantee that the lodging establishment is not undergoing any renovation. The terms state that Priceline Partner Solutions is not responsible for the services provided at the hotel; we are merely the facilitator of the hotel booking process. Per terms and conditions and the cancellation policy emailed to the customer at the time of booking, the customer is due no refund.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - Currency":
+        res.value = textBeforeCursor + "All payments are currently processed in one of the following currencies: U.S. dollars, Great Britain Pounds, Australian Dollar, Canadian Dollar, Euro and will reflect the exchange rate in effect on the date of the payment. A customer has the option to choose their preferred currency from the above mentioned currencies. If a customer doesn't change/choose the currency type, the US Dollar will automatically be chosen as the default currency under which the transaction would be processed. Currency rates are based on various publicly available sources and should be used as guidelines only. Rates are not verified as accurate, and actual rates may vary. Currency quotes are not updated in real-time. Check the date on the currency converter feature for the day that currency was last updated. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - Cancel policy dispute/No Show":
+        res.value = textBeforeCursor + "The reservation is listed as a no-show. Due to this booking being a no-show, no folio is available. No cancellation was received via the Priceline customer service phone line or via the Travel Agent site, as required per the attached cancellation policy Terms and Conditions (T&C) Part IV (C). All policies are agreed to and sent to the guest at the time of booking. Guest failed to process cancellation based on agreed-upon policy. Please see included documents supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - Unable to check in/Customer Issue (Age, CC)":
+        res.value = textBeforeCursor + "Please be advised that the guest will be required to provide official State or authorized government issued ID upon check-in for any Travel Agent reservation. In addition, guest is required to provide a credit or debit card upon request from the hotel for incidentals, as referenced above. Failure to produce such ID may result in forfeiture of the booking of the Travel Agent Service without any right to refund. As per Part IV [C]. Additional hotel policies are given on the confirmation page of the reservation which is also sent to customer via email.\n\n" + textAfterCursor;
+        break;
+
+      case "Waiver - Covid-19 Contacted":
+        res.value = textBeforeCursor + "Priceline Partner Solutions Customer Care was working for the customer to achieve a force majeure exception to the nonrefundable cancellation policy, the customer did not allow enough time for this to be accomplished prior to filing a chargeback. Priceline Partner Solutions cannot issue a refund or waive the cancellation policy without approval from the hotel/supplier.\n" + textAfterCursor;
+        break;
+
+      case "Hotel - Closed/Renovation":
+        res.value = textBeforeCursor + "Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit. The customer agreed to the terms of the booking before their card was charged. Per the additional terms under Travel Agency Agreement, Section 17 states that because of the nature of Travel Agent's Services, we are not in control of the quality of rooms provided by any particular hotel at any time. Travel Agent does not guarantee the accuracy of any information on the Site, nor do we make any guarantee that the lodging establishment is not undergoing any renovation. The terms state that Priceline Partner Solutions is not responsible for the services provided at the hotel; Priceline Partner Solutions is merely the facilitator of the hotel booking process. Per terms and conditions as well as the cancellation policy emailed to the customer at the time of booking, the customer is due no refund. The hotel/ supplier has billed Priceline Partner Solutions, and we have paid the hotel/supplier.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer - Booking Error":
+        res.value = textBeforeCursor + "Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+
+      case "Hotel - Room Type Not Available":
+        res.value = textBeforeCursor + "Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit." + textAfterCursor;
+        break;
+
+      case "Other - Chip liability shift (fraud)":
+        res.value = textBeforeCursor + "The following transaction is not fraudulent as stated. The attached documents indicate the cardholder participated in the transaction; note the AVS and CVV attached. Also, we are a Card Not Present (CNP) environment. All of our sales are made either online through websites or with a sales agent over-the-phone. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. For this reason, any CB claiming that a chip could not be read, is null and void. Please see included purchase details which show the billing data provided at the time of booking links to the cardholder. The cardholder has made no good faith effort in resolving any issues with this charge with Priceline Partner Solutions prior to filing the dispute.\n\n" + textAfterCursor;
+        break;
+
+      case "Sales - Incorrect City/State/Property Booked":
+        res.value = textBeforeCursor + "Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+
+      case "Customer Service Error":
+        res.value = textBeforeCursor + "Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit." + textAfterCursor;
+        break;
+
+      case "Waiver - Sold Out":
+        res.value = textBeforeCursor + "Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+
+      case "Waiver - Covid-19 Not Contacted":
+        res.value = textBeforeCursor + "Priceline Partner Solutions was not provided the opportunity to achieve a force majeure exception to the non-refundable cancellation policy. The customer did not attempt to cancel reservation online through our Priceline Partner Solutions site or by phone through customer service. Priceline Partner Solutions was not allowed time to produce a refund prior to filing a chargeback. Hotel was not closed, nor was Priceline Partner Solutions during pandemic. Our customer care has been open and available to provided customer service. Since the customer did not contact us, and the booking was not cancelled, no refund is due.\n\n" + textAfterCursor;
+        break;
+
+      case "Sales - Data Entry Issue (Online Reservation Only)":
+        res.value = textBeforeCursor + "The reservation was made online through our website by the cardholder and all information was entered by the cardholder. The customer booked the reservation having first agreed to the full transaction amount , cancellation policy, and terms and conditions (T&C) and clicked the box agreeing to the terms and conditions at the time of booking before their card was charged and the card holder was sent confirmation mail in regards to the same. No refund is due.\n\n" + textAfterCursor;
+        break;
+
+      case "Pending":
+        res.value = "Case is pending.";
+        break;
+
+      case "Risk - Fraudulent Transaction (w/ Contact)":
+        res.value = "Customer called Priceline Partner Solutions and cancelled this reservation on MM//DD//YYYY due to _________which was selected by customer himself/herself at the time of booking. As per the cancellation policy this reservation was non-refundablepartially refundable at the time of cancellation and hence it was cancelled with full/partial cancellation charges/penalty. No refund due.\n\nIn direct communication with us, the cardholder acknowledges:\n1. Visiting our website and initiating a booking process.\n2. Seeing the final price before payment and interacting with the payment screen.\n3. Receiving a confirmation email that includes correct booking details and price.\n4. Noting specific dates, amounts, and cancellation policies—clear evidence of familiarity with the transaction.\nThese admissions directly contradict the basis of a \"card not present\", as they demonstrate that the cardholder was knowingly and actively involved in the transaction.\n\nThe following transaction is not fraudulent as stated. The attached documents indicate the cardholder participated in the transaction. Also, we are a Card Not Present (CNP) environment. All of our sales purchase are made by the customer either directly through our secure online platform or via our official call center, where all transactions are handled through verified procedures. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. The attached documents indicate the cardholder participated in the transaction; note the AVS and CVV attached. The payment for this reservation processed in the United States and appeared on statement as 'HTL*_______'.Based on this, we confirm that the transaction was initiated and authorized by the cardholder and request that the chargeback be reversed. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. The attached documents indicate the cardholder participated in the transaction. The cardholder has made no good faith effort in resolving any issues with this charge with Priceline Partner Solutions prior to filing the dispute.\n\n";
+        break;
+
+      case "Service - Cancel Not Performed":
+        res.value = textBeforeCursor + "Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents supporting that cardholder is not due a credit.\n\n" + textAfterCursor;
+        break;
+    }
+  }
+}
+</script>
+

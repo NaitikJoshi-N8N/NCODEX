@@ -1,0 +1,925 @@
+<script>
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * CBMS RCA MANAGER — CLIENT-SIDE JAVASCRIPT
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Start heartbeat for session tracking
+  startHeartbeat();
+  
+  // Initialize realtime dashboard
+  refreshDashboard();
+  setInterval(refreshDashboard, 30000); // Refresh every 30 seconds
+  
+  // Setup keyboard shortcuts
+  setupKeyboardShortcuts();
+  
+  // Initialize collapsible sections (expand first few by default)
+  initializeSections();
+  
+  // Setup upload boxes
+  setupUploadBoxes();
+  
+  // Load canned responses if modal is used
+  fetchCannedResponses();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATUS & TOAST NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function statusUpdate(msg, type) {
+  const status = document.getElementById('status');
+  status.innerText = msg;
+  status.className = type || ''; // 'success', 'error', 'loading'
+  
+  if (type !== 'loading') {
+    setTimeout(function() {
+      status.innerText = '';
+      status.className = '';
+    }, 3000);
+  }
+}
+
+function showToast(message, type) {
+  // Remove existing toasts
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (type || 'success');
+  toast.innerHTML = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => toast.remove(), 4000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HEARTBEAT & SESSION TRACKING
+// ═══════════════════════════════════════════════════════════════════════════
+
+function startHeartbeat() {
+  // Initial heartbeat
+  sendHeartbeat();
+  
+  // Send heartbeat every 60 seconds
+  setInterval(sendHeartbeat, 60000);
+}
+
+function sendHeartbeat() {
+  google.script.run
+    .withSuccessHandler(function(response) {
+      // Heartbeat recorded
+    })
+    .withFailureHandler(function(error) {
+      console.warn('Heartbeat failed:', error);
+    })
+    .recordHeartbeat();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REALTIME DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function refreshDashboard() {
+  google.script.run
+    .withSuccessHandler(updateDashboardUI)
+    .withFailureHandler(function(error) {
+      console.warn('Dashboard refresh failed:', error);
+    })
+    .getRealtimeQueueStats();
+}
+
+function updateDashboardUI(data) {
+  if (!data || data.error) return;
+  
+  document.getElementById('stat-total').textContent = data.totalPending || 0;
+  document.getElementById('stat-urgent').textContent = data.urgent || 0;
+  document.getElementById('stat-mine').textContent = data.myAssigned || 0;
+  document.getElementById('stat-analysts').textContent = data.activeAnalysts || 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COLLAPSIBLE SECTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function initializeSections() {
+  // Show first 3 sections by default
+  const sections = ['section1', 'section2', 'section3'];
+  sections.forEach(id => {
+    const section = document.getElementById(id);
+    if (section) section.style.display = 'block';
+  });
+}
+
+function toggleSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  const header = section.previousElementSibling;
+  
+  if (section.style.display === 'none' || section.style.display === '') {
+    section.style.display = 'block';
+    header.classList.remove('collapsed');
+  } else {
+    section.style.display = 'none';
+    header.classList.add('collapsed');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+Enter: Resolve
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      Resolve();
+    }
+    
+    // Ctrl+N: Next case
+    if (e.ctrlKey && e.key === 'n') {
+      e.preventDefault();
+      getCase();
+    }
+    
+    // Ctrl+P: Pending cases
+    if (e.ctrlKey && e.key === 'p') {
+      e.preventDefault();
+      getPendingCases();
+    }
+    
+    // Escape: Clear form
+    if (e.key === 'Escape') {
+      // Only clear if not in a modal
+      const modal = document.getElementById('cannedModal');
+      if (modal && modal.style.display !== 'none') {
+        closeCannedModal();
+      } else {
+        clearTableData();
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CANNED RESPONSE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function addCannedResponse(response) {
+  const textarea = document.getElementById('rebuttal-response');
+  const cursorPosition = textarea.selectionStart;
+  const textBeforeCursor = textarea.value.substring(0, cursorPosition);
+  const textAfterCursor = textarea.value.substring(cursorPosition);
+  
+  textarea.value = textBeforeCursor + response + textAfterCursor;
+  
+  // Set cursor after inserted text
+  const newPosition = cursorPosition + response.length;
+  textarea.setSelectionRange(newPosition, newPosition);
+  textarea.focus();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COPY TO CLIPBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function copyToClipboard(labelId) {
+  const label = document.getElementById(labelId);
+  const text = label.innerText || label.textContent;
+  
+  if (!text) return;
+  
+  // Modern clipboard API
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('Copied: ' + text, 'success');
+    });
+  } else {
+    // Fallback
+    const tempInput = document.createElement('textarea');
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    showToast('Copied: ' + text, 'success');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CASE INFO DISPLAY
+// ═══════════════════════════════════════════════════════════════════════════
+
+function inputCaseInfo(data) {
+  statusUpdate(data[0], 'success');
+  
+  const table = document.getElementById('caseinfo');
+  let valueCounter = 1;
+  
+  for (let i = 0; i < table.rows.length; i++) {
+    const row = table.rows[i];
+    for (let j = 0; j < row.cells.length; j++) {
+      if ((i * row.cells.length + j) % 2 === 1 && valueCounter < data.length) {
+        row.cells[j].innerHTML = data[valueCounter];
+        valueCounter++;
+      }
+    }
+  }
+  
+  document.getElementById('policy').innerHTML = data[14] || '';
+  document.getElementById('internal-notes-display').innerHTML = data[15] || '';
+  
+  if (data[16] && data[16].length > 2) {
+    AffirmLink(data[16]);
+  }
+  
+  if (data[7] === 'INQ') {
+    document.getElementById('recovery-notes').value = 'This is an Inquiry.';
+  }
+  
+  // Update SLA indicator
+  updateSLAIndicator();
+  
+  // Refresh dashboard
+  refreshDashboard();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SLA TRACKER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateSLAIndicator() {
+  const dueDateCell = document.getElementById('dueDate');
+  if (!dueDateCell || !dueDateCell.textContent) return;
+  
+  const dueDate = new Date(dueDateCell.textContent);
+  const today = new Date();
+  const diffTime = dueDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Create or update indicator
+  let indicator = dueDateCell.querySelector('.sla-indicator');
+  if (!indicator) {
+    indicator = document.createElement('span');
+    indicator.className = 'sla-indicator';
+    dueDateCell.appendChild(indicator);
+  }
+  
+  if (diffDays <= 1) {
+    indicator.className = 'sla-indicator danger';
+    indicator.textContent = ' ⚠️ ' + diffDays + 'd';
+  } else if (diffDays <= 3) {
+    indicator.className = 'sla-indicator warning';
+    indicator.textContent = ' ' + diffDays + 'd';
+  } else if (diffDays <= 5) {
+    indicator.className = 'sla-indicator warning';
+    indicator.textContent = ' ' + diffDays + 'd';
+  } else {
+    indicator.className = 'sla-indicator safe';
+    indicator.textContent = ' ' + diffDays + 'd';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET CASE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getCase() {
+  statusUpdate('Fetching case...', 'loading');
+  
+  const itn = document.getElementById('confirmation-number').value;
+  
+  if (itn !== '') {
+    // Search by ITN
+    google.script.run.withSuccessHandler(updatesearch).searchCase(itn);
+    clearTableData();
+    
+    setTimeout(function() {
+      statusUpdate('Fetching reservation info...', 'loading');
+      google.script.run.withSuccessHandler(updateTtable).getReservationData(itn);
+    }, 2000);
+    
+    setTimeout(function() {
+      const row = document.getElementById('cId').innerText;
+      google.script.run.withSuccessHandler(claimstatus).checkClaim(row);
+    }, 10000);
+  } else {
+    // Get next case from queue
+    clearTableData();
+    const portal = document.getElementById('portal').value;
+    
+    if (portal !== '') {
+      google.script.run.withSuccessHandler(inputCaseInfo).getCase(portal);
+      
+      setTimeout(function() {
+        const itn = document.getElementById('itn').innerText;
+        statusUpdate('Fetching reservation info...', 'loading');
+        google.script.run.withSuccessHandler(updateTtable).getReservationData(itn);
+      }, 6000);
+      
+      setTimeout(function() {
+        const row = document.getElementById('cId').innerText;
+        google.script.run.withSuccessHandler(claimstatus).checkClaim(row);
+      }, 10000);
+    }
+  }
+}
+
+function claimstatus(response) {
+  if (response[1] === '#2ea44f' || response[1] === 'green') {
+    statusUpdate(response[0], 'success');
+  } else {
+    statusUpdate(response[0], 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEARCH CASE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updatesearch(data) {
+  statusUpdate(data[0], 'success');
+  
+  const table = document.getElementById('caseinfo');
+  let valueCounter = 1;
+  
+  for (let i = 0; i < table.rows.length; i++) {
+    const row = table.rows[i];
+    for (let j = 0; j < row.cells.length; j++) {
+      if ((i * row.cells.length + j) % 2 === 1 && valueCounter < data.length) {
+        row.cells[j].innerHTML = data[valueCounter];
+        valueCounter++;
+      }
+    }
+  }
+  
+  document.getElementById('policy').innerHTML = data[14] || '';
+  if (data[18] && data[18].length > 2) AffirmLink(data[18]);
+  document.getElementById('issuer-notes').value = data[15] || '';
+  document.getElementById('rebuttal-response').value = data[16] || '';
+  document.getElementById('internal-notes').value = data[17] || '';
+  document.getElementById('rca').value = data[19] || '';
+  
+  updateSLAIndicator();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRANSACTION INFO
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateTtable(data) {
+  statusUpdate(data[0], 'success');
+  
+  const table = document.getElementById('transInfo');
+  let valueCounter = 1;
+  
+  for (let i = 0; i < table.rows.length; i++) {
+    const row = table.rows[i];
+    for (let j = 0; j < row.cells.length; j++) {
+      if ((i * row.cells.length + j) % 2 === 1 && valueCounter < data.length) {
+        row.cells[j].innerHTML = data[valueCounter];
+        valueCounter++;
+      }
+    }
+  }
+}
+
+function getInfo() {
+  const itn = document.getElementById('itn').innerText;
+  statusUpdate('Fetching reservation info...', 'loading');
+  google.script.run.withSuccessHandler(updateTtable).getReservationData(itn);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AFFIRM LINK
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AffirmLink(link) {
+  const portalCell = document.getElementById('alink');
+  const hyperlink = document.createElement('a');
+  hyperlink.href = 'https://' + link;
+  hyperlink.textContent = 'Affirm';
+  hyperlink.target = '_blank';
+  hyperlink.style.color = 'var(--accent-green)';
+  portalCell.textContent = '';
+  portalCell.appendChild(hyperlink);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLEAR DATA
+// ═══════════════════════════════════════════════════════════════════════════
+
+function clearTableData() {
+  const dataElements = document.querySelectorAll('.data');
+  dataElements.forEach(element => {
+    element.textContent = '';
+  });
+  
+  document.getElementById('rca').value = '';
+  document.getElementById('issuer-notes').value = '';
+  document.getElementById('rebuttal-response').value = '';
+  document.getElementById('internal-notes').value = '';
+  document.getElementById('icon').innerHTML = '❌';
+  document.getElementById('Uploadstatus').innerHTML = '';
+  document.getElementById('policy').innerHTML = '';
+  document.getElementById('internal-notes-display').innerHTML = '';
+  
+  const outputs = document.querySelectorAll('.output');
+  outputs.forEach(output => output.textContent = '');
+  
+  // Clear file inputs
+  ['confirmpage', 'confirmpages', 'checkoutpage', 'checkoutpages', 'wexandrefund', 'accproof'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = '';
+  });
+  
+  // Clear upload boxes
+  const deleteButtons = document.querySelectorAll('.delete-btn');
+  deleteButtons.forEach(button => button.click());
+  
+  // Reset section header colors
+  const headers = document.querySelectorAll('.section-header');
+  headers.forEach(header => header.classList.remove('active'));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RESOLVE CASE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function Resolve() {
+  const rca = document.getElementById('rca').value;
+  const res = document.getElementById('rebuttal-response').value;
+  
+  if (rca === '' || res === '') {
+    showToast('⚠️ RCA and Rebuttal Response are required', 'error');
+    return;
+  }
+  
+  const outputs = document.querySelectorAll('.output');
+  const refundAmt = document.querySelector('#caseinfo > tbody > tr:nth-child(8) > td:nth-child(2)');
+  
+  if (outputs[2] && outputs[2].textContent === 'Uploaded' && refundAmt && refundAmt.innerText == 0) {
+    if (!confirm('Resolve without updating refund amount?')) {
+      return;
+    }
+  }
+  
+  const row = document.getElementById('cId').innerText;
+  const aff = document.getElementById('issuer-notes').value;
+  const notes = document.getElementById('internal-notes').value;
+  
+  statusUpdate('Resolving case...', 'loading');
+  
+  google.script.run.withSuccessHandler(function(msg) {
+    statusUpdate(msg, 'success');
+    showToast('✓ Case resolved successfully', 'success');
+    clearTableData();
+    
+    // Auto-fetch next case if not searching
+    if (document.getElementById('confirmation-number').value === '') {
+      setTimeout(getCase, 3000);
+    }
+    
+    refreshDashboard();
+  }).resolveRCA(row, rca, res, aff, notes);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FILE UPLOADS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function setupUploadBoxes() {
+  const uploadBoxes = document.querySelectorAll('.upload-box');
+  
+  uploadBoxes.forEach(box => {
+    const previewImage = box.querySelector('img');
+    const span = box.querySelector('span');
+    const deleteButton = box.querySelector('.delete-btn');
+    
+    // Paste event
+    box.addEventListener('paste', (event) => {
+      const items = event.clipboardData.items;
+      for (let item of items) {
+        if (item.type.startsWith('image/')) {
+          const blob = item.getAsFile();
+          const url = URL.createObjectURL(blob);
+          previewImage.src = url;
+          previewImage.style.display = 'block';
+          span.style.display = 'none';
+          deleteButton.style.display = 'block';
+          break;
+        }
+      }
+    });
+    
+    // Delete button
+    deleteButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      previewImage.src = '';
+      previewImage.style.display = 'none';
+      span.style.display = 'block';
+      deleteButton.style.display = 'none';
+    });
+  });
+}
+
+async function saveFiles1() {
+  const uploadBoxes = document.querySelectorAll('.upload-box');
+  const itn = document.getElementById('itn').innerText;
+  const row = document.getElementById('tId').innerText;
+  
+  if (row === '') {
+    showToast('⚠️ Transaction Info Missing!', 'error');
+    return;
+  }
+  
+  statusUpdate('Uploading images...', 'loading');
+  
+  for (let box of uploadBoxes) {
+    const img = box.querySelector('img');
+    const output = box.nextElementSibling;
+    
+    if (img.src.startsWith('blob')) {
+      const base64Data = await getBase64FromImage(img.src);
+      
+      google.script.run.withSuccessHandler((response) => {
+        output.textContent = response.status;
+      }).uploadImageToDrive(row, itn, box.id, base64Data);
+    }
+  }
+  
+  setTimeout(() => {
+    statusUpdate('Upload complete', 'success');
+  }, 3000);
+}
+
+async function getBase64FromImage(imageUrl) {
+  const response = await fetch(imageUrl);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      resolve(reader.result.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function uploadFiles() {
+  const statusEl = document.getElementById('Uploadstatus');
+  const itn = document.getElementById('itn').innerText;
+  
+  const getFileContent = (file) => {
+    return new Promise((resolve, reject) => {
+      statusEl.innerHTML = 'Uploading... <span class="spinner"></span>';
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+  
+  const prepareFile = async (file) => ({
+    name: file.name,
+    mimeType: file.type,
+    content: await getFileContent(file)
+  });
+  
+  const confirmpage = document.getElementById('confirmpage').files[0];
+  const checkoutpage = document.getElementById('checkoutpage').files[0];
+  const confirmpages = document.getElementById('confirmpages').files[0];
+  const checkoutpages = document.getElementById('checkoutpages').files[0];
+  const wexandrefund = document.getElementById('wexandrefund').files[0];
+  const accproof = document.getElementById('accproof').files[0];
+  
+  if (!confirmpage || !checkoutpage) {
+    showToast('⚠️ Confirmation and Checkout pages are required!', 'error');
+    return;
+  }
+  
+  const formData = {
+    itn: itn,
+    confirmpage: await prepareFile(confirmpage),
+    checkoutpage: await prepareFile(checkoutpage),
+    confirmpages: confirmpages ? await prepareFile(confirmpages) : null,
+    checkoutpages: checkoutpages ? await prepareFile(checkoutpages) : null,
+    wexandrefund: wexandrefund ? await prepareFile(wexandrefund) : null,
+    accproof: accproof ? await prepareFile(accproof) : null,
+  };
+  
+  google.script.run.withSuccessHandler((res) => {
+    statusEl.innerHTML = '<strong>' + res.message + '</strong><br>Uploaded:<br>' + res.uploaded.join('<br>');
+    showToast('✓ PDFs uploaded successfully', 'success');
+    
+    // Clear file inputs
+    ['confirmpage', 'confirmpages', 'checkoutpage', 'checkoutpages', 'wexandrefund', 'accproof'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+  }).uploadAllFiles(formData);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECOVERY
+// ═══════════════════════════════════════════════════════════════════════════
+
+function RecoveryReq() {
+  const row = document.getElementById('tId').innerText;
+  const selectedOption = document.getElementById('recovery-details').value;
+  
+  if (row === '') {
+    showToast('⚠️ Transaction Info Missing!', 'error');
+    return;
+  }
+  
+  if (selectedOption === '') {
+    showToast('⚠️ Please select an option', 'error');
+    return;
+  }
+  
+  statusUpdate('Submitting...', 'loading');
+  
+  if (selectedOption === 'Recovery Needed') {
+    const itn = document.getElementById('itn').innerText;
+    const hotel = document.getElementById('hotel').innerText;
+    const rnum = document.getElementById('rnum').innerText;
+    const cin = document.querySelectorAll('.data')[19].innerText;
+    const cout = document.querySelectorAll('.data')[20].innerText;
+    const cbcode = document.querySelectorAll('.data')[4].innerText;
+    const amt = document.querySelectorAll('.data')[8].innerText;
+    const notes = document.getElementById('recovery-notes').value;
+    
+    google.script.run.withSuccessHandler(sentmsg).sendForRecovery(itn, rnum, amt, cin, cout, hotel, cbcode, notes);
+  } else {
+    const itn = document.getElementById('itn').innerText;
+    const rnum = document.getElementById('rnum').innerText;
+    const amt = document.querySelectorAll('.data')[8].innerText;
+    const notes = document.getElementById('recovery-notes').value;
+    
+    google.script.run.withSuccessHandler(sentmsg).sendForVbException(itn, rnum, amt, selectedOption, notes);
+  }
+  
+  function sentmsg(msg) {
+    statusUpdate(msg, 'success');
+    document.getElementById('recovery-notes').value = '';
+    document.getElementById('icon').innerHTML = '✅';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PENDING CASES
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getPendingCases() {
+  statusUpdate('Fetching pending cases...', 'loading');
+  google.script.run.withSuccessHandler(updatePending).getPendingCases();
+}
+
+function updatePending(data) {
+  const workingRca = document.getElementsByClassName('working-rca')[0];
+  const hideBtn = document.getElementById('hide');
+  const pendingcase = document.getElementById('pendingcase');
+  const pendingmessage = document.getElementById('pendingmessage');
+  
+  if (data.length > 0) {
+    workingRca.style.display = 'block';
+    hideBtn.style.display = 'inline';
+    pendingcase.style.display = 'table';
+    pendingmessage.style.display = 'none';
+    
+    // Clear existing rows
+    const rowCount = pendingcase.rows.length;
+    for (let i = rowCount - 1; i > 0; i--) {
+      pendingcase.deleteRow(i);
+    }
+    
+    // Add new rows
+    for (let i = 0; i < data.length; i++) {
+      const row = document.createElement('tr');
+      for (let j = 0; j < data[i].length; j++) {
+        const cell = document.createElement('td');
+        cell.textContent = data[i][j];
+        row.appendChild(cell);
+      }
+      pendingcase.appendChild(row);
+    }
+    
+    // Apply SLA indicators to pending cases
+    DeadlineReaching();
+    statusUpdate(data.length + ' pending cases found', 'success');
+  } else {
+    workingRca.style.display = 'block';
+    pendingmessage.style.display = 'block';
+    pendingcase.style.display = 'none';
+    statusUpdate('No pending cases', 'success');
+  }
+}
+
+function hidePendingTable() {
+  document.getElementsByClassName('working-rca')[0].style.display = 'none';
+  document.getElementById('hide').style.display = 'none';
+}
+
+function DeadlineReaching() {
+  const tablerows = document.getElementById('pendingcase').getElementsByTagName('tr');
+  for (let row = 1; row < tablerows.length; row++) {
+    const cellToCheck = tablerows[row].getElementsByTagName('td')[5];
+    const daysRemaining = reviewDate(cellToCheck);
+    
+    if (daysRemaining < 2) {
+      cellToCheck.innerHTML += ' <span class="sla-indicator danger">⚠️ URGENT</span>';
+    } else if (daysRemaining < 5) {
+      cellToCheck.innerHTML += ' <span class="sla-indicator warning">' + daysRemaining + 'd</span>';
+    }
+  }
+}
+
+function reviewDate(cell) {
+  const today = new Date();
+  const dueDt = new Date(cell.textContent);
+  const diffTime = dueDt - today;
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUEUE STATS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getCount() {
+  statusUpdate('Fetching queue stats...', 'loading');
+  google.script.run.withSuccessHandler((response) => {
+    const spans = document.querySelectorAll('.queue-status span');
+    spans[0].textContent = response.myCount || 0;
+    spans[1].textContent = response.myFraud || 0;
+    spans[2].textContent = response.priority || 0;
+    spans[3].textContent = response.affirm || 0;
+    spans[4].textContent = response.amex || 0;
+    spans[5].textContent = response.braintree || 0;
+    spans[6].textContent = response.chase || 0;
+    statusUpdate('Stats refreshed', 'success');
+  }).agentCount();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EDIT CELL
+// ═══════════════════════════════════════════════════════════════════════════
+
+function editCell(editIcon) {
+  const currTd = editIcon.closest('td');
+  const td = editIcon.closest('td').nextElementSibling;
+  const currentValue = td.textContent.trim();
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentValue;
+  input.style.width = '80%';
+  
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  
+  const saveIcon = document.createElement('span');
+  saveIcon.innerHTML = '💾';
+  saveIcon.classList.add('action-icons');
+  saveIcon.onclick = () => saveCell(input, td, saveIcon, currTd);
+  
+  editIcon.replaceWith(saveIcon);
+}
+
+function saveCell(input, td, saveIcon, currTd) {
+  const newValue = input.value.trim();
+  td.textContent = newValue;
+  
+  const editIcon = document.createElement('span');
+  editIcon.innerHTML = '✏️';
+  editIcon.classList.add('action-icons');
+  editIcon.onclick = () => editCell(editIcon);
+  
+  saveIcon.replaceWith(editIcon);
+  
+  if (currTd.innerText.includes('Room Type')) {
+    const row = document.getElementById('tId').innerText;
+    google.script.run.updateRoomType(row, newValue);
+  } else {
+    const row = document.getElementById('cId').innerText;
+    google.script.run.updateRefundAmount(row, newValue);
+  }
+  
+  showToast('✓ Updated', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CANNED RESPONSE MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+
+let cannedResponses = [];
+
+function showCannedModal() {
+  document.getElementById('cannedModal').style.display = 'block';
+  fetchCannedResponses();
+}
+
+function closeCannedModal() {
+  document.getElementById('cannedModal').style.display = 'none';
+}
+
+function fetchCannedResponses() {
+  google.script.run.withSuccessHandler((data) => {
+    cannedResponses = data || [];
+    const dropdown = document.getElementById('savedResList');
+    dropdown.innerHTML = '';
+    cannedResponses.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.name;
+      dropdown.appendChild(opt);
+    });
+  }).getCannedResponses();
+}
+
+function loadCannedResponse() {
+  const name = document.getElementById('responseList').value;
+  const match = cannedResponses.find(r => r.name === name);
+  if (match) {
+    document.getElementById('responseBox').value = match.response;
+    document.getElementById('responseName').value = match.name;
+  }
+}
+
+function saveCanned() {
+  const name = document.getElementById('responseName').value.trim();
+  const response = document.getElementById('responseBox').value.trim();
+  
+  if (!name || !response) {
+    showToast('⚠️ Please enter both name and response', 'error');
+    return;
+  }
+  
+  google.script.run.withSuccessHandler((msg) => {
+    showToast('✓ Template ' + msg, 'success');
+    fetchCannedResponses();
+  }).saveCannedResponse(name, response);
+}
+
+function clearCanned() {
+  document.getElementById('responseList').value = '';
+  document.getElementById('responseBox').value = '';
+  document.getElementById('responseName').value = '';
+}
+
+function insertCanned() {
+  const response = document.getElementById('responseBox').value;
+  if (response) {
+    addCannedResponse(response);
+    closeCannedModal();
+    showToast('✓ Template inserted', 'success');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BOOKING DATA
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getBookingData() {
+  const row = document.getElementById('cId').innerText;
+  google.script.run.withSuccessHandler((response) => {
+    if (response) {
+      addCannedResponse(response);
+      showToast('✓ Booking data inserted', 'success');
+    }
+  }).createCannedRes(row);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ISSUER NOTES VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const textarea = document.getElementById('issuer-notes');
+const MAX_ROWS = 30;
+const MAX_CHARS = 2500;
+
+if (textarea) {
+  textarea.addEventListener('input', function() {
+    const lines = textarea.value.split('\n');
+    const charCount = textarea.value.length;
+    const errorMsg = document.getElementById('errorMsg');
+    
+    if (lines.length > MAX_ROWS) {
+      errorMsg.textContent = 'Maximum of ' + MAX_ROWS + ' rows allowed.';
+      textarea.value = lines.slice(0, MAX_ROWS).join('\n');
+    } else if (charCount > MAX_CHARS) {
+      errorMsg.textContent = 'Maximum of ' + MAX_CHARS + ' characters allowed.';
+      textarea.value = textarea.value.slice(0, MAX_CHARS);
+    } else {
+      errorMsg.textContent = '';
+    }
+  });
+}
+</script>
+

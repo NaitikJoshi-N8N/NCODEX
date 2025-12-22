@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBMS RCA Manager</title>
+  <?!= include('Stylesheet'); ?>
+  <?!= include('RCAResponse'); ?>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       HEADER
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <header>
+    <h1>RCA MANAGER</h1>
+    <div id="status"></div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       MAIN CONTAINER
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="container">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         LEFT SECTION
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="left-section">
+      
+      <!-- Realtime Dashboard Widget -->
+      <div class="dashboard-widget" id="realtimeDashboard">
+        <h4>QUEUE OVERVIEW</h4>
+        <div class="stat-row">
+          <span class="label">Total Pending</span>
+          <span class="value" id="stat-total">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Urgent (&lt;2 days)</span>
+          <span class="value urgent" id="stat-urgent">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">My Assigned</span>
+          <span class="value" id="stat-mine">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Active Analysts</span>
+          <span class="value" id="stat-analysts">—</span>
+        </div>
+      </div>
+
+      <!-- Get Case Section -->
+      <div class="section-header" onclick="toggleSection('section1')">GET CASE</div>
+      <div class="section-content" id="section1">
+        <select name="curr" id="curr" style="display:none">
+          <option value="">Select Currency</option>
+          <option value="USD">USD</option>
+          <option value="Non USD">Non USD</option>
+        </select>
+        
+        <label>Portal</label>
+        <select name="portal" id="portal">
+          <option value="">Select Portal</option>
+          <option value="Amex">Amex</option>
+          <option value="Affirm">Affirm</option>
+          <option value="Braintree">Braintree</option>
+          <option value="Chase">Chase</option>  
+          <option value="Priority">Priority Queue</option>
+        </select>
+        
+        <label style="margin-top: 12px;">Search by ITN</label>
+        <input type="text" id="confirmation-number" placeholder="Enter ITN to search">
+        
+        <div class="buttons-section" style="margin-top: 16px;">
+          <button onclick="getCase()" class="primary">Get Case</button>
+        </div>
+      </div>
+
+      <!-- Case Info Section -->
+      <div class="section-header" onclick="toggleSection('section2')">CASE INFO</div>
+      <div class="section-content" id="section2">
+        <table id="caseinfo">
+          <tr>
+            <td class="label">Row</td>
+            <td class="data" id="cId"></td>
+          </tr>
+          <tr>
+            <td class="label">Case ID</td>
+            <td class="data" id="caseid" onclick="copyToClipboard('caseid')"></td>
+          </tr>
+          <tr>
+            <td class="label">ITN</td>
+            <td class="data" id="itn" onclick="copyToClipboard('itn')"></td>
+          </tr>
+          <tr>
+            <td class="label">Reservation #</td>
+            <td class="data" id="rnum" onclick="copyToClipboard('rnum')"></td>
+          </tr>
+          <tr>
+            <td class="label">Reason Code</td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Dispute Amt</td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Dispute Type</td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Refund Amt <span class="action-icons" onclick="editCell(this)">✏️</span></td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Trans Amt</td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Currency</td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Dispute Date</td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Due Date</td>
+            <td class="data" id="dueDate"></td>
+          </tr>
+          <tr>
+            <td class="label">Portal</td>
+            <td class="data" id="alink"></td>
+          </tr>
+        </table>
+        <div id="policy"></div>
+        <div id="internal-notes-display"></div>
+      </div>
+
+      <!-- Transaction Info Section -->
+      <div class="section-header" onclick="toggleSection('section3')">TRANSACTION INFO</div>
+      <div class="section-content" id="section3">
+        <button onclick="getInfo()" style="margin-bottom: 12px;">Fetch Info</button>
+        <table id="transInfo">
+          <tr>
+            <td class="label">Row</td>
+            <td class="data" id="tId"></td>
+          </tr>
+          <tr>
+            <td class="label">ITN</td>
+            <td class="data" id="itn2" onclick="copyToClipboard('itn2')"></td>
+          </tr>
+          <tr>
+            <td class="label">Booking Date</td>
+            <td class="data"></td>
+          </tr>
+          <tr style="display:none">
+            <td class="label">Hotel Name</td>
+            <td class="data" id="hotel" onclick="copyToClipboard('hotel')"></td>
+          </tr>
+          <tr style="display:none">
+            <td class="label">Guest Name</td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Check In</td>
+            <td class="data"></td>
+          </tr>
+          <tr style="display:none">
+            <td class="label">Check Out</td>
+            <td class="data"></td>
+          </tr>
+          <tr style="display:none">
+            <td class="label">Email</td>
+            <td class="data"></td>
+          </tr>
+          <tr>
+            <td class="label">Room Type <span class="action-icons" onclick="editCell(this)">✏️</span></td>
+            <td class="data"></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Canned Response Section -->
+      <div class="section-header" onclick="toggleSection('section4')">TEMPLATES</div>
+      <div class="section-content" id="section4">
+        <button onclick="getBookingData()">📋 Booking Data</button>
+        <button onclick="addCannedResponse('The customer was issued a full refund on [date] in the amount [amount currency] with ARN # [ARN]')">Fully Refunded</button>
+        <button onclick="addCannedResponse('The reservation was made online through our website by the cardholder and all information was entered by the cardholder including check in/check out dates, hotel name, location, city, state, country, room types, number of persons booked, charges. The cardholder booked the reservation having first agreed to the full transaction amount, cancellation policy, and clicked the box agreeing to the terms and conditions (T&C) at the time of booking before their card was charged and the card holder was sent confirmation mail in regards to the same.')">Online Res</button>
+        <button onclick="addCannedResponse('The guest had agreed to the reservation as well as the terms and conditions of the reservations prior to accepting/confirming his/her payment to us. In addition, upon completion of the booking, an electronic copy of the itinerary was sent via email to the email address that was provided during the booking process. Customer was made aware of and agreed to the cancellation policy prior to confirming the booking. Please see included documents\' supporting that cardholder is not due a credit.')">Call Center</button>
+        <button onclick="addCannedResponse('No contact was received via Priceline customer service phone line or via Travel Agent site, as required per the attached cancellation policy (T&C Sec 28) prior to filing a chargeback.')">No Contact</button>
+        <button onclick="addCannedResponse('Please be advised that Travel Agent retains the right to cancel any travel reservation in the event of a chargeback related to that reservation. Cardholder\'s chargeback is an erroneous attempt to circumvent contract the customer entered when agreeing to the Terms and Conditions (T&C) #6 before his card was charged. Priceline retains the right to dispute any chargeback that it believes is improper and retains the right to investigate and rebut any such chargeback claims and to recover costs of such chargeback claims from the cardholder.')">Fraud No Penalty</button>
+        <button onclick="addCannedResponse('In order to secure the waiver, we contacted the hotel on XXXXXX CST and spoke to XXXXXX from the XXXXXX for the refund but the same was denied and our card was charged. No refund is due.')">Waiver Denied</button>
+        <button onclick="showCannedModal()">📝 Custom Templates</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MIDDLE SECTION
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="middle-section">
+      
+      <!-- RCA Selection -->
+      <div class="rca-section">
+        <input list="rcas" id="rca" onchange="fetchResponse()" placeholder="Select or type RCA...">
+        <input type="checkbox" id="getRes?" title="Auto-fill response template">
+        <datalist id="rcas">
+          <option value="">Select RCA</option>
+          <option value="Customer - Cancel policy dispute/Non Refundable">Customer - Cancel policy dispute/Non Refundable</option>
+          <option value="Risk - Fraudulent Transaction">Risk - Fraudulent Transaction</option>
+          <option value="Customer - Cancel policy dispute">Customer - Cancel policy dispute</option>
+          <option value="No Reservation (No Wex)">No Reservation (No Wex)</option>
+          <option value="Customer - Taxes and Fees">Customer - Taxes and Fees</option>
+          <option value="Manual Response">Manual Response</option>
+          <option value="Customer - Cancel policy dispute (No Contact / Confirmed)">Customer - Cancel policy dispute (No Contact / Confirmed)</option>
+          <option value="Chargeback Accepted">Chargeback Accepted</option>
+          <option value="No Reservation (with WEX)">No Reservation (with WEX)</option>
+          <option value="Cancellation/Tax & Recovery (attempt to cancel)">Cancellation/Tax & Recovery (attempt to cancel)</option>
+          <option value="Duplicate bill w/ GAR ARN">Duplicate bill w/ GAR ARN</option>
+          <option value="Hotel - Unsatisfactory">Hotel - Unsatisfactory</option>
+          <option value="No Reservation (Cancelled)">No Reservation (Cancelled)</option>
+          <option value="Customer - Cancel Penalty Dispute/Early Checkout">Customer - Cancel Penalty Dispute/Early Checkout</option>
+          <option value="Hotel - Hotel Billed Direct (Wex not charged/Direct Bill)">Hotel - Hotel Billed Direct (Wex not charged/Direct Bill)</option>
+          <option value="Cancellation/Tax & Recovery (No attempt to cancel)">Cancellation/Tax & Recovery (No attempt to cancel)</option>
+          <option value="Customer - Charge not recognized">Customer - Charge not recognized</option>
+          <option value="Hotel - Hotel revealed rate">Hotel - Hotel revealed rate</option>
+          <option value="Hotel - Hotel Billed Direct">Hotel - Hotel Billed Direct</option>
+          <option value="Duplicate bill w/ NON GAR ARN">Duplicate bill w/ NON GAR ARN</option>
+          <option value="Resolved">Resolved</option>
+          <option value="Reason code 53 without affidavit">Reason code 53 without affidavit</option>
+          <option value="Customer - Currency">Customer - Currency</option>
+          <option value="Customer - Cancel policy dispute/No Show">Customer - Cancel policy dispute/No Show</option>
+          <option value="Customer - Unable to check in/Customer Issue (Age, CC)">Customer - Unable to check in/Customer Issue (Age, CC)</option>
+          <option value="Customer - Booking Error">Customer - Booking Error</option>
+          <option value="Hotel - Room Type Not Available">Hotel - Room Type Not Available</option>
+          <option value="Other - Chip liability shift (fraud)">Other - Chip liability shift (fraud)</option>
+          <option value="Service - Cancel Not Performed">Service - Cancel Not Performed</option>
+          <option value="Risk - Fraudulent Transaction (w/ Contact)">Risk - Fraudulent Transaction (w/ Contact)</option>
+          <option value="Sales - Data Entry Issue (Online Reservation Only)">Sales - Data Entry Issue (Online Reservation Only)</option>
+          <option value="Pending">Pending</option>
+        </datalist>
+      </div>
+
+      <!-- Issuer Notes -->
+      <label for="issuer-notes">Issuer Notes</label>
+      <textarea id="issuer-notes" rows="4" placeholder="Enter issuer notes..." class="resizable"></textarea>
+      <div class="error" id="errorMsg"></div>
+
+      <!-- Rebuttal Response -->
+      <label for="rebuttal-response">Rebuttal Response</label>
+      <textarea id="rebuttal-response" rows="12" placeholder="Enter rebuttal response..." class="resizable"></textarea>
+
+      <!-- Internal Notes -->
+      <label for="internal-notes">Internal Notes</label>
+      <textarea id="internal-notes" rows="2" placeholder="Enter internal notes..." class="resizable"></textarea>
+
+      <!-- Action Buttons -->
+      <div class="buttons-section">
+        <button onclick="Resolve()" class="primary">Resolve Case</button>
+        <button onclick="getPendingCases()">View Pending</button>
+        <button id="hide" onclick="hidePendingTable()" style="display:none">Hide Pending</button>
+      </div>
+
+      <!-- Pending Cases Table -->
+      <div class="working-rca" style="display:none">
+        <label style="display:none" id="pendingmessage">No pending cases!</label>
+        <table id="pendingcase" style="display:none">
+          <tr>
+            <th class="row-number">Row</th>
+            <th>Case ID</th>
+            <th>ITN</th>
+            <th>Reason Code</th>
+            <th>Received</th> 
+            <th>Due Date</th>
+            <th>Notes</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         RIGHT SECTION
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="right-section">
+
+      <!-- Upload Files Section -->
+      <div class="uploads-section">
+        <div class="section-header" onclick="toggleSection('section5')">UPLOAD IMAGES</div>
+        <div class="section-content" id="section5">
+          
+          <label class="labelupload">Hotel Billed Merchant</label>
+          <div class="upload-box" id="wex" tabindex="0">
+            <span>Paste or click</span>
+            <button class="delete-btn">✕</button>
+            <img alt="Preview">
+          </div>
+          <div class="output"></div>
+
+          <label class="labelupload">Accertify Index Score</label>
+          <div class="upload-box" id="ais" tabindex="0">
+            <span>Paste or click</span>
+            <img alt="Preview">
+            <button class="delete-btn">✕</button>
+          </div>
+          <div class="output"></div>
+
+          <label class="labelupload">Refund Screenshot</label>
+          <div class="upload-box" id="rfs" tabindex="0">
+            <span>Paste or click</span>
+            <img alt="Preview">
+            <button class="delete-btn">✕</button>
+          </div>
+          <div class="output"></div>
+
+          <label class="labelupload">Customer Contact</label>
+          <div class="upload-box" id="ccontact" tabindex="0">
+            <span>Paste or click</span>
+            <img alt="Preview">
+            <button class="delete-btn">✕</button>
+          </div>
+          <div class="output"></div>
+
+          <label class="labelupload">Proof of Non Fraud</label>
+          <div class="upload-box" id="nonfraud" tabindex="0">
+            <span>Paste or click</span>
+            <img alt="Preview">
+            <button class="delete-btn">✕</button>
+          </div>
+          <div class="output"></div>
+
+          <label class="labelupload">Proof of Non Fraud #1</label>
+          <div class="upload-box" id="nonfraud1" tabindex="0">
+            <span>Paste or click</span>
+            <img alt="Preview">
+            <button class="delete-btn">✕</button>
+          </div>
+          <div class="output"></div>
+
+          <label class="labelupload">Proof of Non Fraud #2</label>
+          <div class="upload-box" id="nonfraud2" tabindex="0">
+            <span>Paste or click</span>
+            <img alt="Preview">
+            <button class="delete-btn">✕</button>
+          </div>
+          <div class="output"></div>
+
+          <button id="upload" onclick="saveFiles1()" style="margin-top: 12px;">Upload All Images</button>
+        </div>
+      </div>
+
+      <!-- Recovery Section -->
+      <div class="section-header" onclick="toggleSection('section6')">RECOVERY</div>
+      <div class="section-content" id="section6">
+        <textarea id="recovery-notes" rows="3" placeholder="Enter recovery notes..." class="resizable"></textarea>
+        <select id="recovery-details" style="margin-top: 8px;">
+          <option value="">Select option</option>
+          <option value="Recovery Needed">Recovery Needed</option>
+          <option value="Outside Penalty">Outside Penalty</option>
+          <option value="Denied Already">Denied Already</option>
+          <option value="Waived Already">Waived Already</option>
+          <option value="Partially Waived Already">Partially Waived Already</option>
+        </select>
+        <div class="buttons-section" style="margin-top: 12px;">
+          <button onclick="RecoveryReq()">Submit</button>
+          <span id="icon" style="font-size: 18px;">❌</span>
+        </div>
+      </div>
+
+      <!-- PDF Uploads Section -->
+      <div class="pdf-uploads">
+        <div class="section-header" onclick="toggleSection('section8')">UPLOAD PDFs</div>
+        <div class="section-content" id="section8">
+          <label>Confirmation Page (Required)</label>
+          <input type="file" id="confirmpage" accept="application/pdf" required>
+
+          <label>Checkout Page (Required)</label>
+          <input type="file" id="checkoutpage" accept="application/pdf" required>
+
+          <label>Duplicate Confirmation</label>
+          <input type="file" id="confirmpages" accept="application/pdf">
+
+          <label>Duplicate Checkout</label>
+          <input type="file" id="checkoutpages" accept="application/pdf">
+
+          <label>WEX & Refund</label>
+          <input type="file" id="wexandrefund" accept="application/pdf">
+
+          <label>Accertify PDF</label>
+          <input type="file" id="accproof" accept="application/pdf">
+
+          <button id="buttonPDF" onclick="uploadFiles()" style="margin-top: 12px;">Upload All PDFs</button>
+          <div class="success-msg">
+            <p id="Uploadstatus"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queue Stats Section -->
+      <div class="queue-status-section">
+        <div class="section-header" onclick="toggleSection('section7')">QUEUE STATS</div>
+        <div class="section-content" id="section7">
+          <button onclick="getCount()" style="margin-bottom: 12px;">Refresh Stats</button>
+          <div class="queue-status">
+            <div><strong>All RCA</strong><span></span></div>
+            <div><strong>Fraud RCA</strong><span></span></div>
+            <div><strong>Priority</strong><span></span></div>
+            <div><strong>Affirm</strong><span></span></div>
+            <div><strong>Amex</strong><span></span></div>
+            <div><strong>Braintree</strong><span></span></div>
+            <div><strong>Chase</strong><span></span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       CANNED RESPONSE MODAL
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="cannedModal" style="display:none;">
+    <h3>Custom Templates</h3>
+    <label>Saved Templates</label>
+    <input list="savedResList" id="responseList" onchange="loadCannedResponse()" placeholder="Select template...">
+    <datalist id="savedResList"></datalist>
+    
+    <label style="margin-top: 12px;">Template Content</label>
+    <textarea id="responseBox" placeholder="Type your template..." rows="6"></textarea>
+    
+    <label>Template Name</label>
+    <input type="text" id="responseName" placeholder="Enter name to save">
+    
+    <div class="buttons-section" style="margin-top: 16px;">
+      <button onclick="saveCanned()">💾 Save</button>
+      <button onclick="insertCanned()">📋 Insert</button>
+      <button onclick="clearCanned()">Clear</button>
+      <button onclick="closeCannedModal()">✕ Close</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       KEYBOARD SHORTCUTS HINT
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="shortcuts-hint">
+    <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> Resolve</span>
+    <span><kbd>Ctrl</kbd>+<kbd>N</kbd> Next Case</span>
+    <span><kbd>Esc</kbd> Clear</span>
+  </div>
+
+  <?!= include('JavaScript'); ?>
+</body>
+</html>
+
