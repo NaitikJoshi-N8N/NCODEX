@@ -272,8 +272,8 @@ The Case Distribution Engine ensures fair, balanced workload across active analy
 |----------|------------------|
 | **FRAUD** | Fraud, 10.4, 37, AA, Card not present, Does Not Recognize, No knowledge, U02, Not Recognized |
 | **SERVICE** | INQ, Inquiry, Cancel, Cancellation, Service |
-| **CUSTOMER** | Customer, Booking Error, Currency, Tax, Duplicate |
-| **HOTEL** | Hotel, Room, Unsatisfactory, Billed Direct |
+| **OTHER** | TO BE DEFINED |
+| **CANCELLATION** | TO BE DEFINED |
 
 ### Session Tracking
 
@@ -300,7 +300,7 @@ The Case Distribution Engine ensures fair, balanced workload across active analy
 
 #### Distribution Summary
 - Total pending cases
-- Cases by category (FRAUD, SERVICE, CUSTOMER, HOTEL)
+- Cases by category (FRAUD, SERVICE, CANCELLATION, OTHER)
 - Active analyst count
 - Urgent cases count
 
